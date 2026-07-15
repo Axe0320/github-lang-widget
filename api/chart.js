@@ -57,14 +57,14 @@ const THEMES = {
     heading: '#8b949e',
     legendName: '#e6edf3',
     legendPercent: '#8b949e',
-    rowTrack: 'rgba(255,255,255,0.08)',
+    rowTrack: '#21262d',
   },
   light: {
     background: '#ffffff',
     heading: '#57606a',
     legendName: '#1f2328',
     legendPercent: '#57606a',
-    rowTrack: 'rgba(31,35,40,0.08)',
+    rowTrack: '#eaeef2',
   },
 }
 
@@ -148,11 +148,14 @@ export default async function handler(request) {
   // Scale text/bar/spacing relative to how big the requested canvas is, so a
   // "large" widget actually looks bigger and more detailed, not just zoomed-out.
   const scale = Math.min(width, height) / BASE_SIZE
-  // Extra multiplier on top of `scale`, for just the legend rows. Lets a size
-  // like medium (short canvas, few rows) blow its rows up to fill the leftover
-  // vertical space instead of floating as a small centered block.
-  const rowScaleParam = Number(searchParams.get('rowScale'))
-  const rowScale = scale * (Number.isFinite(rowScaleParam) && rowScaleParam > 0 ? rowScaleParam : 1)
+  // `boost` thickens the bar and enlarges legend text/dots/margins on top of
+  // `scale`, for sizes that still look sparse. It's kept separate from the
+  // fixed pixel widths below (name/percent columns), which stay tied to
+  // `scale` alone — boosting those too would blow the row past the canvas's
+  // actual width instead of just making it more readable.
+  const boostParam = Number(searchParams.get('boost'))
+  const boost = Number.isFinite(boostParam) && boostParam > 0 ? boostParam : 1
+  const boosted = scale * boost
 
   let stats
   let errorMessage = null
@@ -196,11 +199,11 @@ export default async function handler(request) {
     const rowChildren = [
       el('div', {
         style: {
-          width: Math.round(14 * rowScale),
-          height: Math.round(14 * rowScale),
-          borderRadius: Math.round(7 * rowScale),
+          width: Math.round(14 * boosted),
+          height: Math.round(14 * boosted),
+          borderRadius: Math.round(7 * boosted),
           backgroundColor: s.color,
-          marginRight: Math.round(10 * rowScale),
+          marginRight: Math.round(10 * boosted),
           display: 'flex',
         },
       }),
@@ -211,8 +214,9 @@ export default async function handler(request) {
             color: theme.legendName,
             display: 'flex',
             // Fixed width (instead of flex: 1) so there's room left for the
-            // row's own bar when rowBars is on.
-            width: Math.round((rowBars ? 130 : 220) * rowScale),
+            // row's own bar when rowBars is on. Tied to `scale`, not `boost` —
+            // it has to stay within the canvas's actual width.
+            width: Math.round((rowBars ? 140 : 230) * scale),
             overflow: 'hidden',
             whiteSpace: 'nowrap',
           },
@@ -228,11 +232,11 @@ export default async function handler(request) {
           {
             style: {
               flexGrow: 1,
-              height: Math.round(8 * rowScale),
-              borderRadius: Math.round(4 * rowScale),
+              height: Math.round(8 * boosted),
+              borderRadius: Math.round(4 * boosted),
               backgroundColor: theme.rowTrack,
               overflow: 'hidden',
-              marginRight: Math.round(12 * rowScale),
+              marginRight: Math.round(12 * scale),
               display: 'flex',
             },
           },
@@ -257,7 +261,7 @@ export default async function handler(request) {
           style: {
             color: theme.legendPercent,
             display: 'flex',
-            width: Math.round(56 * rowScale),
+            width: Math.round(64 * scale),
             justifyContent: 'flex-end',
           },
         },
@@ -272,8 +276,8 @@ export default async function handler(request) {
         style: {
           display: 'flex',
           alignItems: 'center',
-          fontSize: Math.round(20 * rowScale),
-          marginBottom: Math.round(12 * rowScale),
+          fontSize: Math.round(20 * boosted),
+          marginBottom: Math.round(12 * boosted),
         },
       },
       rowChildren
@@ -287,8 +291,8 @@ export default async function handler(request) {
         style: {
           display: 'flex',
           color: theme.heading,
-          fontSize: Math.round(18 * scale),
-          marginBottom: Math.round(16 * scale),
+          fontSize: Math.round(18 * boosted),
+          marginBottom: Math.round(16 * boosted),
         },
       },
       owner
@@ -299,32 +303,18 @@ export default async function handler(request) {
         style: {
           display: 'flex',
           width: '100%',
-          height: Math.round(22 * scale),
-          borderRadius: Math.round(11 * scale),
+          height: Math.round(22 * boosted),
+          borderRadius: Math.round(11 * boosted),
           overflow: 'hidden',
           // No legend below means the bar is the last element — skip its margin.
-          marginBottom: legendStats.length > 0 ? Math.round(24 * scale) : 0,
+          marginBottom: legendStats.length > 0 ? Math.round(24 * boosted) : 0,
         },
       },
       barSegments
     ),
   ]
-  // fillHeight spreads the legend rows across whatever vertical space is left
-  // instead of leaving them clustered in a centered block with empty margins
-  // above/below — useful for a short-but-wide canvas with only a few rows.
-  const fillHeight = searchParams.get('fillHeight') === '1'
   if (legendStats.length > 0) {
-    children.push(
-      el(
-        'div',
-        {
-          style: fillHeight
-            ? { display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'space-between' }
-            : { display: 'flex', flexDirection: 'column' },
-        },
-        legendRows
-      )
-    )
+    children.push(el('div', { style: { display: 'flex', flexDirection: 'column' } }, legendRows))
   }
 
   const tree = el(
@@ -335,7 +325,7 @@ export default async function handler(request) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: fillHeight ? 'flex-start' : 'center',
+        justifyContent: 'center',
         padding: `${Math.round(28 * scale)}px`,
         backgroundColor: theme.background,
         fontFamily: 'Inter',
