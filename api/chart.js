@@ -73,6 +73,14 @@ function el(type, props, children) {
   return { type, props: { ...props, children } }
 }
 
+// satori doesn't reliably clip text via overflow:hidden + a fixed width — long
+// content (e.g. "TypeScript", or a long error message) can shrink the box
+// itself instead of being clipped, throwing off every sibling's position.
+// Truncating the string up front sidesteps that entirely.
+function truncate(text, maxChars) {
+  return text.length > maxChars ? text.slice(0, maxChars - 1) + '…' : text
+}
+
 // Vercel's documented trick: fetch() has no browser UA, so Google Fonts' CSS API
 // serves back a plain .ttf link instead of a modern .woff2 one.
 async function loadGoogleFont(fontFamily, text) {
@@ -195,6 +203,10 @@ export default async function handler(request) {
     })
   )
 
+  // Ratio of box width to fontSize is constant regardless of `boosted` (both
+  // scale together), so a fixed character budget works for every size.
+  const nameMaxChars = rowBars ? 15 : 16
+
   const legendRows = legendStats.map((s) => {
     const rowChildren = [
       el('div', {
@@ -215,16 +227,12 @@ export default async function handler(request) {
             display: 'flex',
             // Fixed width (instead of flex: 1) so there's room left for the
             // row's own bar when rowBars is on. Tied to `boosted` (not just
-            // `scale`) so the box grows in step with the font size it holds —
-            // otherwise a bigger `boost` clips names like "TypeScript" against
-            // the row's own bar. 220 gives roughly an 11-character margin at
-            // this fontSize (20 * boosted); 140 measured too tight in practice.
+            // `scale`) so the box grows in step with the font size it holds.
             width: Math.round((rowBars ? 220 : 230) * boosted),
-            overflow: 'hidden',
             whiteSpace: 'nowrap',
           },
         },
-        s.name
+        truncate(s.name, nameMaxChars)
       ),
     ]
 
