@@ -14,10 +14,10 @@ const OWNER = "Axe0320"
 // in a fairly tall canvas, so without this they'd float small with empty
 // space above/below instead of filling it.
 const IMAGE_SIZE_MAP = {
-  small: { w: 300, h: 300, legendCount: 3, rowBars: false, rowScale: 1 },
-  medium: { w: 640, h: 300, legendCount: 3, rowBars: true, rowScale: 1.6 },
-  large: { w: 640, h: 640, legendCount: 8, rowBars: true, rowScale: 1 },
-  extraLarge: { w: 1024, h: 640, legendCount: 10, rowBars: true, rowScale: 1 }, // iPad Home Screen only
+  small: { w: 300, h: 300, legendCount: 3, rowBars: false, rowScale: 1, fillHeight: false },
+  medium: { w: 640, h: 300, legendCount: 3, rowBars: true, rowScale: 1.3, fillHeight: true },
+  large: { w: 640, h: 640, legendCount: 8, rowBars: true, rowScale: 1, fillHeight: false },
+  extraLarge: { w: 1024, h: 640, legendCount: 10, rowBars: true, rowScale: 1, fillHeight: false }, // iPad Home Screen only
 }
 
 // Lock Screen widgets: iOS forces these to render monochrome/tinted, so an
@@ -79,12 +79,15 @@ async function createAccessoryWidget(family) {
 }
 
 async function createImageWidget(family) {
-  const { w, h, legendCount, rowBars, rowScale } = IMAGE_SIZE_MAP[family] || IMAGE_SIZE_MAP.medium
+  const { w, h, legendCount, rowBars, rowScale, fillHeight } =
+    IMAGE_SIZE_MAP[family] || IMAGE_SIZE_MAP.medium
   const theme = resolveTheme()
   // Request at 2x for Retina sharpness.
   const url = `${API_BASE}?owner=${encodeURIComponent(OWNER)}&w=${w * 2}&h=${
     h * 2
-  }&legendCount=${legendCount}&theme=${theme}&rowBars=${rowBars ? 1 : 0}&rowScale=${rowScale}`
+  }&legendCount=${legendCount}&theme=${theme}&rowBars=${rowBars ? 1 : 0}&rowScale=${rowScale}&fillHeight=${
+    fillHeight ? 1 : 0
+  }`
   const image = await new Request(url).loadImage()
 
   const widget = new ListWidget()

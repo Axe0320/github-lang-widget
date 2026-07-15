@@ -309,8 +309,22 @@ export default async function handler(request) {
       barSegments
     ),
   ]
+  // fillHeight spreads the legend rows across whatever vertical space is left
+  // instead of leaving them clustered in a centered block with empty margins
+  // above/below — useful for a short-but-wide canvas with only a few rows.
+  const fillHeight = searchParams.get('fillHeight') === '1'
   if (legendStats.length > 0) {
-    children.push(el('div', { style: { display: 'flex', flexDirection: 'column' } }, legendRows))
+    children.push(
+      el(
+        'div',
+        {
+          style: fillHeight
+            ? { display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'space-evenly' }
+            : { display: 'flex', flexDirection: 'column' },
+        },
+        legendRows
+      )
+    )
   }
 
   const tree = el(
@@ -321,7 +335,7 @@ export default async function handler(request) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
+        justifyContent: fillHeight ? 'flex-start' : 'center',
         padding: `${Math.round(28 * scale)}px`,
         backgroundColor: theme.background,
         fontFamily: 'Inter',
