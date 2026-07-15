@@ -59,6 +59,7 @@ vercel env add GITHUB_TOKEN
 - `legendCount` — バーの下に言語名を何件テキスト表示するか (デフォルト: 6、`0`でバーのみ)
 - `theme` — `dark` (デフォルト) または `light`。背景・文字色を切り替える
 - `rowBars` — `1` (デフォルト) で各言語行にも my-intro 同様の個別バーを表示、`0` でテキストのみ
+- `rowScale` — 凡例の行だけをさらに拡大する倍率 (デフォルト: `1`)。上下に余白ができやすい`medium`向け
 
 ## Scriptable 側のセットアップ (iPhone) — 最初の1回だけ
 

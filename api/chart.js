@@ -148,6 +148,11 @@ export default async function handler(request) {
   // Scale text/bar/spacing relative to how big the requested canvas is, so a
   // "large" widget actually looks bigger and more detailed, not just zoomed-out.
   const scale = Math.min(width, height) / BASE_SIZE
+  // Extra multiplier on top of `scale`, for just the legend rows. Lets a size
+  // like medium (short canvas, few rows) blow its rows up to fill the leftover
+  // vertical space instead of floating as a small centered block.
+  const rowScaleParam = Number(searchParams.get('rowScale'))
+  const rowScale = scale * (Number.isFinite(rowScaleParam) && rowScaleParam > 0 ? rowScaleParam : 1)
 
   let stats
   let errorMessage = null
@@ -191,11 +196,11 @@ export default async function handler(request) {
     const rowChildren = [
       el('div', {
         style: {
-          width: Math.round(14 * scale),
-          height: Math.round(14 * scale),
-          borderRadius: Math.round(7 * scale),
+          width: Math.round(14 * rowScale),
+          height: Math.round(14 * rowScale),
+          borderRadius: Math.round(7 * rowScale),
           backgroundColor: s.color,
-          marginRight: Math.round(10 * scale),
+          marginRight: Math.round(10 * rowScale),
           display: 'flex',
         },
       }),
@@ -207,7 +212,7 @@ export default async function handler(request) {
             display: 'flex',
             // Fixed width (instead of flex: 1) so there's room left for the
             // row's own bar when rowBars is on.
-            width: Math.round((rowBars ? 130 : 220) * scale),
+            width: Math.round((rowBars ? 130 : 220) * rowScale),
             overflow: 'hidden',
             whiteSpace: 'nowrap',
           },
@@ -223,11 +228,11 @@ export default async function handler(request) {
           {
             style: {
               flexGrow: 1,
-              height: Math.round(8 * scale),
-              borderRadius: Math.round(4 * scale),
+              height: Math.round(8 * rowScale),
+              borderRadius: Math.round(4 * rowScale),
               backgroundColor: theme.rowTrack,
               overflow: 'hidden',
-              marginRight: Math.round(12 * scale),
+              marginRight: Math.round(12 * rowScale),
               display: 'flex',
             },
           },
@@ -252,7 +257,7 @@ export default async function handler(request) {
           style: {
             color: theme.legendPercent,
             display: 'flex',
-            width: Math.round(56 * scale),
+            width: Math.round(56 * rowScale),
             justifyContent: 'flex-end',
           },
         },
@@ -267,8 +272,8 @@ export default async function handler(request) {
         style: {
           display: 'flex',
           alignItems: 'center',
-          fontSize: Math.round(20 * scale),
-          marginBottom: Math.round(12 * scale),
+          fontSize: Math.round(20 * rowScale),
+          marginBottom: Math.round(12 * rowScale),
         },
       },
       rowChildren

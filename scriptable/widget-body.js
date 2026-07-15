@@ -9,12 +9,15 @@ const OWNER = "Axe0320"
 // The bar itself always shows the same overall breakdown; legendCount controls
 // how many per-language text rows are listed below it (0 = bar only). rowBars
 // adds my-intro's per-language mini bar next to each row — off on small,
-// where there isn't enough width to spare for it.
+// where there isn't enough width to spare for it. rowScale enlarges just the
+// legend rows on top of the usual size-based scaling — medium only has 3 rows
+// in a fairly tall canvas, so without this they'd float small with empty
+// space above/below instead of filling it.
 const IMAGE_SIZE_MAP = {
-  small: { w: 300, h: 300, legendCount: 3, rowBars: false },
-  medium: { w: 640, h: 300, legendCount: 3, rowBars: true },
-  large: { w: 640, h: 640, legendCount: 8, rowBars: true },
-  extraLarge: { w: 1024, h: 640, legendCount: 10, rowBars: true }, // iPad Home Screen only
+  small: { w: 300, h: 300, legendCount: 3, rowBars: false, rowScale: 1 },
+  medium: { w: 640, h: 300, legendCount: 3, rowBars: true, rowScale: 1.6 },
+  large: { w: 640, h: 640, legendCount: 8, rowBars: true, rowScale: 1 },
+  extraLarge: { w: 1024, h: 640, legendCount: 10, rowBars: true, rowScale: 1 }, // iPad Home Screen only
 }
 
 // Lock Screen widgets: iOS forces these to render monochrome/tinted, so an
@@ -76,12 +79,12 @@ async function createAccessoryWidget(family) {
 }
 
 async function createImageWidget(family) {
-  const { w, h, legendCount, rowBars } = IMAGE_SIZE_MAP[family] || IMAGE_SIZE_MAP.medium
+  const { w, h, legendCount, rowBars, rowScale } = IMAGE_SIZE_MAP[family] || IMAGE_SIZE_MAP.medium
   const theme = resolveTheme()
   // Request at 2x for Retina sharpness.
   const url = `${API_BASE}?owner=${encodeURIComponent(OWNER)}&w=${w * 2}&h=${
     h * 2
-  }&legendCount=${legendCount}&theme=${theme}&rowBars=${rowBars ? 1 : 0}`
+  }&legendCount=${legendCount}&theme=${theme}&rowBars=${rowBars ? 1 : 0}&rowScale=${rowScale}`
   const image = await new Request(url).loadImage()
 
   const widget = new ListWidget()
