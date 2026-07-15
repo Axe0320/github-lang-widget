@@ -1,0 +1,9 @@
+{
+  "name": "github-lang-widget",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Vercel Edge Function that renders a GitHub repo's language-usage bar chart as a PNG, for display in an iOS Scriptable widget.",
+  "dependencies": {
+    "@vercel/og": "^0.6.3"
+  }
+}
