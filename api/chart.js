@@ -250,7 +250,7 @@ export default async function handler(request) {
               // element's basis being miscomputed for one row was exactly
               // what threw off every sibling's position on that row.
               flexShrink: 1,
-              flexBasis: 0,
+              flexBasis: '0%',
               height: Math.round(8 * boosted),
               borderRadius: Math.round(4 * boosted),
               backgroundColor: theme.rowTrack,
