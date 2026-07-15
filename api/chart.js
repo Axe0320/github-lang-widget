@@ -6,6 +6,12 @@ const DEFAULT_OWNER = 'Axe0320'
 // How many of the account-wide languages also get a text row (name + %) below
 // the bar. This is what varies per widget size (0 = bar only, no legend).
 const DEFAULT_LEGEND_COUNT = 6
+// Below this, a language's true percentage renders as a sliver too thin to
+// see (or even 0 device pixels) — it looks omitted even though it's still in
+// the data. Floor each segment's on-screen width here, then renormalize the
+// whole bar back to 100% so the boost doesn't push later segments off the
+// (overflow: hidden) edge.
+const MIN_BAR_PERCENT = 0.6
 // Reference canvas size that the base font/spacing numbers below were tuned for.
 // Requests for a bigger or smaller canvas scale everything proportionally,
 // instead of leaving a fixed-size chart floating in empty space.
@@ -163,10 +169,16 @@ export default async function handler(request) {
     ' abcdefghijklmnopqrstuvwxyz0123456789.%/'
   const fontData = await loadGoogleFont('Inter', sampleText)
 
-  const barSegments = stats.map((s) =>
+  // Give tiny languages a floor width, then renormalize back to 100% so the
+  // boost doesn't push the total past the bar's clipped edge.
+  const flooredPercents = stats.map((s) => Math.max(s.percent, MIN_BAR_PERCENT))
+  const flooredTotal = flooredPercents.reduce((sum, v) => sum + v, 0)
+  const barWidths = flooredPercents.map((v) => (v / flooredTotal) * 100)
+
+  const barSegments = stats.map((s, i) =>
     el('div', {
       key: s.name,
-      style: { width: `${s.percent}%`, backgroundColor: s.color, display: 'flex' },
+      style: { width: `${barWidths[i]}%`, backgroundColor: s.color, display: 'flex' },
     })
   )
 

@@ -9,7 +9,7 @@ const OWNER = "Axe0320"
 // The bar itself always shows the same overall breakdown; legendCount controls
 // how many per-language text rows are listed below it (0 = bar only).
 const IMAGE_SIZE_MAP = {
-  small: { w: 300, h: 300, legendCount: 0 },
+  small: { w: 300, h: 300, legendCount: 3 },
   medium: { w: 640, h: 300, legendCount: 3 },
   large: { w: 640, h: 640, legendCount: 8 },
   extraLarge: { w: 1024, h: 640, legendCount: 10 }, // iPad Home Screen only
