@@ -13,9 +13,16 @@
 
 ## 構成
 
-- `api/chart.js` — Vercel Edge Function。GitHub API (`/users/:owner/repos` → 各リポジトリの
-  `languages_url`) を叩いて全リポジトリ分のバイト数を合計し、言語別の使用率バー + 凡例を描画した
-  PNG を返す。
+- `api/data.js` — Vercel Edge Function。GitHub API (`/users/:owner/repos` → 各リポジトリの
+  `languages_url`) を叩いて全リポジトリ分のバイト数を合計した JSON を返す。**GitHubへの実際の
+  問い合わせはここでしか行わない**。レスポンス自体が30分キャッシュされるので、`api/chart.js`が
+  どんなサイズ・テーマで何回呼ばれても、キャッシュが効いている間はGitHubへは1回しか飛ばない。
+- `api/chart.js` — Vercel Edge Function。`api/data.js` から言語データを取得し（GitHubには直接
+  アクセスしない）、言語別の使用率バー + 凡例を描画した PNG を返す。
+- `lib/githubData.js` — GitHubからのデータ取得ロジック（`api/data.js`が使用）。
+- `lib/chartTree.js` — PNGの描画ツリーを組み立てるロジック（`api/chart.js`が使用）。サイズごとに
+  ファイルを分けるのではなく、「データ取得」と「描画」で分割している（サイズの違いはただの
+  パラメータ違いであり、ロジックの複製にする意味が無いため）。
 - `api/widget-script.js` — `scriptable/widget-body.js` の中身をそのままテキストとして返す
   Vercel Function。Scriptable 側から毎回フェッチされる「本体コード配信用」エンドポイント。
 - `scriptable/loader.js` — **iPhone に一度だけ貼る**小さなブートストラップ。
@@ -60,7 +67,9 @@ vercel env add GITHUB_TOKEN
 - `theme` — `dark` (デフォルト) または `light`。背景・文字色を切り替える
 - `rowBars` — `1` (デフォルト) で各言語行にも my-intro 同様の個別バーを表示、`0` でテキストのみ
 - `boost` — バーの太さ・凡例のフォント/ドット/行間をまとめて拡大する倍率 (デフォルト: `1`)。
-  名前欄・%欄の幅（横方向）は影響を受けない（キャンバス幅を超えて崩れないようにするため）
+  名前欄・%欄の幅（横方向）は影響を受けない（キャンバス幅を超えて崩れないようにするため）。
+  `legendCount`が多くて縦に収まりきらない場合は、指定値より小さい値へ自動的に縮小される
+- `rowBarHeight` — 各言語行のミニバーの太さだけをさらに拡大する倍率 (デフォルト: `1`)
 
 ## Scriptable 側のセットアップ (iPhone) — 最初の1回だけ
 
@@ -71,7 +80,8 @@ vercel env add GITHUB_TOKEN
    Vercel にデプロイしておく（この内容が実行時に自動フェッチされる）。
 5. ホーム画面 or ロック画面を長押し → ウィジェット追加 → Scriptable を選択（好きなサイズで）。
 6. 追加したウィジェットを長押し → 「ウィジェットを編集」→ Script に `loader.js` を貼ったスクリプトを指定。
-   同じ画面の **Parameter** 欄に `light` と入力すると白背景テーマになる（未入力/それ以外は `dark`）。
+   同じ画面の **Parameter** 欄に `light`/`white`/`白`/`ホワイト`/`ライト` のいずれかを入力すると
+   白背景テーマになる（未入力/それ以外は `dark`）。
 
 **これ以降、`widget-body.js` を直して `vercel --prod` するだけで iPhone 側は自動的に最新ロジックで動きます。
 Scriptable アプリを再度開いて貼り直す必要はありません。**
@@ -84,10 +94,10 @@ Scriptable アプリを再度開いて貼り直す必要はありません。**
 
 | ファミリー | 表示内容 |
 |---|---|
-| `small` (iPhone ホーム画面) | 棒グラフ + 上位3言語のテキスト（行ごとのミニバーは無し） |
-| `medium` | 棒グラフ + 上位3言語（行ごとのミニバー付き） |
-| `large` | 棒グラフ + 上位8言語（行ごとのミニバー付き） |
-| `extraLarge` (iPad ホーム画面) | 棒グラフ + 上位10言語（行ごとのミニバー付き） |
+| `small` (iPhone ホーム画面) | 棒グラフ + 上位5言語のテキスト（%は右端固定、行ごとのミニバーは無し） |
+| `medium` | 棒グラフ + 上位5言語（太めのミニバー付き） |
+| `large` | 棒グラフ + 上位15言語（ミニバー付き） |
+| `extraLarge` (iPad ホーム画面) | 棒グラフ + 上位15言語（ミニバー付き） |
 | `accessoryCircular` / `accessoryRectangular` / `accessoryInline` (ロック画面) | 最も使用率の高い言語名 + % のテキスト表示のみ |
 
 ロック画面ウィジェットは iOS の仕様上、常にモノクロ／ティント表示に強制変換されるため、

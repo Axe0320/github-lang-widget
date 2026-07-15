@@ -11,12 +11,15 @@ const OWNER = "Axe0320"
 // adds my-intro's per-language mini bar next to each row — off on small,
 // where there isn't enough width to spare for it. boost thickens the bar and
 // enlarges the legend text/dots/rows on top of the usual size-based scaling —
-// tuned per family since how much empty space is left varies a lot by size.
+// tuned per family since how much empty space is left varies a lot by size
+// (api/chart.js automatically caps it back down if a row count wouldn't fit,
+// so these can stay generous). rowBarHeight thickens just the per-row mini
+// bar on top of that.
 const IMAGE_SIZE_MAP = {
-  small: { w: 300, h: 300, legendCount: 3, rowBars: false, boost: 1.3 },
-  medium: { w: 640, h: 300, legendCount: 3, rowBars: true, boost: 1.4 },
-  large: { w: 640, h: 640, legendCount: 8, rowBars: true, boost: 1.15 },
-  extraLarge: { w: 1024, h: 640, legendCount: 10, rowBars: true, boost: 1.05 }, // iPad Home Screen only
+  small: { w: 300, h: 300, legendCount: 5, rowBars: false, boost: 1.7, rowBarHeight: 1 },
+  medium: { w: 640, h: 300, legendCount: 5, rowBars: true, boost: 1.6, rowBarHeight: 1.8 },
+  large: { w: 640, h: 640, legendCount: 15, rowBars: true, boost: 1.15, rowBarHeight: 1 },
+  extraLarge: { w: 1024, h: 640, legendCount: 15, rowBars: true, boost: 1.05, rowBarHeight: 1 }, // iPad Home Screen only
 }
 
 // Lock Screen widgets: iOS forces these to render monochrome/tinted, so an
@@ -27,11 +30,13 @@ const ACCESSORY_FAMILIES = new Set([
   "accessoryInline",
 ])
 
-// Long-press the widget → Edit Widget → Parameter, and type "light" (or
-// "white") to switch it. Anything else (or left blank) stays "dark".
+// Long-press the widget → Edit Widget → Parameter, and type "light"/"white"
+// (or "白"/"ホワイト"/"ライト") to switch it. Anything else (or left blank)
+// stays "dark" — "dark"/"black"/"黒"/"ブラック"/"ダーク" also work explicitly.
+const LIGHT_WORDS = new Set(["light", "white", "白", "ホワイト", "ライト"])
 function resolveTheme() {
   const param = (args.widgetParameter || "").trim().toLowerCase()
-  return param === "light" || param === "white" ? "light" : "dark"
+  return LIGHT_WORDS.has(param) ? "light" : "dark"
 }
 
 // Mirrors my-intro/index.js's loadGitHubRepos(): sum languages_url across every
@@ -78,12 +83,15 @@ async function createAccessoryWidget(family) {
 }
 
 async function createImageWidget(family) {
-  const { w, h, legendCount, rowBars, boost } = IMAGE_SIZE_MAP[family] || IMAGE_SIZE_MAP.medium
+  const { w, h, legendCount, rowBars, boost, rowBarHeight } =
+    IMAGE_SIZE_MAP[family] || IMAGE_SIZE_MAP.medium
   const theme = resolveTheme()
   // Request at 2x for Retina sharpness.
   const url = `${API_BASE}?owner=${encodeURIComponent(OWNER)}&w=${w * 2}&h=${
     h * 2
-  }&legendCount=${legendCount}&theme=${theme}&rowBars=${rowBars ? 1 : 0}&boost=${boost}`
+  }&legendCount=${legendCount}&theme=${theme}&rowBars=${
+    rowBars ? 1 : 0
+  }&boost=${boost}&rowBarHeight=${rowBarHeight}`
   const image = await new Request(url).loadImage()
 
   const widget = new ListWidget()
