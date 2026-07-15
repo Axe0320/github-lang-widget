@@ -217,8 +217,9 @@ export default async function handler(request) {
             // row's own bar when rowBars is on. Tied to `boosted` (not just
             // `scale`) so the box grows in step with the font size it holds —
             // otherwise a bigger `boost` clips names like "TypeScript" against
-            // the row's own bar.
-            width: Math.round((rowBars ? 140 : 230) * boosted),
+            // the row's own bar. 220 gives roughly an 11-character margin at
+            // this fontSize (20 * boosted); 140 measured too tight in practice.
+            width: Math.round((rowBars ? 220 : 230) * boosted),
             overflow: 'hidden',
             whiteSpace: 'nowrap',
           },
