@@ -57,12 +57,14 @@ const THEMES = {
     heading: '#8b949e',
     legendName: '#e6edf3',
     legendPercent: '#8b949e',
+    rowTrack: 'rgba(255,255,255,0.08)',
   },
   light: {
     background: '#ffffff',
     heading: '#57606a',
     legendName: '#1f2328',
     legendPercent: '#57606a',
+    rowTrack: 'rgba(31,35,40,0.08)',
   },
 }
 
@@ -140,6 +142,9 @@ export default async function handler(request) {
   const legendCount = legendCountParam === null ? DEFAULT_LEGEND_COUNT : Number(legendCountParam)
   const themeName = searchParams.get('theme') === 'light' ? 'light' : 'dark'
   const theme = THEMES[themeName]
+  // Matches my-intro/index.js's per-row lang-row-bar. Widget-side, small
+  // leaves this off (too little width to spare); medium and up turn it on.
+  const rowBars = searchParams.get('rowBars') !== '0'
   // Scale text/bar/spacing relative to how big the requested canvas is, so a
   // "large" widget actually looks bigger and more detailed, not just zoomed-out.
   const scale = Math.min(width, height) / BASE_SIZE
@@ -182,8 +187,80 @@ export default async function handler(request) {
     })
   )
 
-  const legendRows = legendStats.map((s) =>
-    el(
+  const legendRows = legendStats.map((s) => {
+    const rowChildren = [
+      el('div', {
+        style: {
+          width: Math.round(14 * scale),
+          height: Math.round(14 * scale),
+          borderRadius: Math.round(7 * scale),
+          backgroundColor: s.color,
+          marginRight: Math.round(10 * scale),
+          display: 'flex',
+        },
+      }),
+      el(
+        'div',
+        {
+          style: {
+            color: theme.legendName,
+            display: 'flex',
+            // Fixed width (instead of flex: 1) so there's room left for the
+            // row's own bar when rowBars is on.
+            width: Math.round((rowBars ? 130 : 220) * scale),
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+          },
+        },
+        s.name
+      ),
+    ]
+
+    if (rowBars) {
+      rowChildren.push(
+        el(
+          'div',
+          {
+            style: {
+              flexGrow: 1,
+              height: Math.round(8 * scale),
+              borderRadius: Math.round(4 * scale),
+              backgroundColor: theme.rowTrack,
+              overflow: 'hidden',
+              marginRight: Math.round(12 * scale),
+              display: 'flex',
+            },
+          },
+          [
+            el('div', {
+              style: {
+                width: `${s.percent}%`,
+                height: '100%',
+                backgroundColor: s.color,
+                display: 'flex',
+              },
+            }),
+          ]
+        )
+      )
+    }
+
+    rowChildren.push(
+      el(
+        'div',
+        {
+          style: {
+            color: theme.legendPercent,
+            display: 'flex',
+            width: Math.round(56 * scale),
+            justifyContent: 'flex-end',
+          },
+        },
+        `${s.percent.toFixed(1)}%`
+      )
+    )
+
+    return el(
       'div',
       {
         key: s.name,
@@ -194,30 +271,9 @@ export default async function handler(request) {
           marginBottom: Math.round(12 * scale),
         },
       },
-      [
-        el('div', {
-          style: {
-            width: Math.round(14 * scale),
-            height: Math.round(14 * scale),
-            borderRadius: Math.round(7 * scale),
-            backgroundColor: s.color,
-            marginRight: Math.round(10 * scale),
-            display: 'flex',
-          },
-        }),
-        el(
-          'div',
-          { style: { color: theme.legendName, display: 'flex', flex: 1 } },
-          s.name
-        ),
-        el(
-          'div',
-          { style: { color: theme.legendPercent, display: 'flex' } },
-          `${s.percent.toFixed(1)}%`
-        ),
-      ]
+      rowChildren
     )
-  )
+  })
 
   const children = [
     el(
