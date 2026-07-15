@@ -2,7 +2,7 @@
 // refresh time — it is NOT pasted into Scriptable directly. Edit here,
 // `vercel --prod`, and the widget picks it up on its next refresh.
 
-const API_BASE = "https://YOUR-VERCEL-APP.vercel.app/api/chart"
+const API_BASE = "https://github-lang-widget.vercel.app/api/chart"
 const OWNER = "Axe0320"
 
 // Home Screen / iPad widget sizes: rendered via the PNG chart from api/chart.js.

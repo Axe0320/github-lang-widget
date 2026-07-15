@@ -5,7 +5,7 @@
 // SCRIPT_URL below stays correct, you never need to paste anything again —
 // pushing changes to widget-body.js and redeploying to Vercel is enough.
 
-const SCRIPT_URL = "https://YOUR-VERCEL-APP.vercel.app/api/widget-script"
+const SCRIPT_URL = "https://github-lang-widget.vercel.app/api/widget-script"
 
 const code = await new Request(SCRIPT_URL).loadString()
 eval(code)
