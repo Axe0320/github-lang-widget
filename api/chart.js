@@ -342,7 +342,12 @@ export default async function handler(request) {
     height,
     fonts: [{ name: 'Inter', data: fontData, style: 'normal' }],
     headers: {
-      'Cache-Control': 'public, max-age=1800, s-maxage=1800',
+      // A transient failure (e.g. a GitHub rate limit) must never be cached
+      // as if it were good data — that would freeze the error in place for
+      // the full cache lifetime everywhere this image is embedded.
+      'Cache-Control': errorMessage
+        ? 'no-store'
+        : 'public, max-age=1800, s-maxage=1800',
     },
   })
 }
