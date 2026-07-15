@@ -229,6 +229,7 @@ export default async function handler(request) {
             // row's own bar when rowBars is on. Tied to `boosted` (not just
             // `scale`) so the box grows in step with the font size it holds.
             width: Math.round((rowBars ? 220 : 230) * boosted),
+            flexShrink: 0,
             whiteSpace: 'nowrap',
           },
         },
@@ -243,6 +244,13 @@ export default async function handler(request) {
           {
             style: {
               flexGrow: 1,
+              // Explicit flexShrink/flexBasis (instead of just flexGrow: 1)
+              // to avoid flex-basis: auto — with a percentage-width child
+              // inside, that's a known circular-sizing edge case, and this
+              // element's basis being miscomputed for one row was exactly
+              // what threw off every sibling's position on that row.
+              flexShrink: 1,
+              flexBasis: 0,
               height: Math.round(8 * boosted),
               borderRadius: Math.round(4 * boosted),
               backgroundColor: theme.rowTrack,
@@ -273,6 +281,7 @@ export default async function handler(request) {
             color: theme.legendPercent,
             display: 'flex',
             width: Math.round(64 * boosted),
+            flexShrink: 0,
             justifyContent: 'flex-end',
           },
         },
