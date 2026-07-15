@@ -45,6 +45,21 @@ const LANG_COLORS = {
 }
 const FALLBACK_COLOR = '#8b8b8b'
 
+const THEMES = {
+  dark: {
+    background: '#0d1117',
+    heading: '#8b949e',
+    legendName: '#e6edf3',
+    legendPercent: '#8b949e',
+  },
+  light: {
+    background: '#ffffff',
+    heading: '#57606a',
+    legendName: '#1f2328',
+    legendPercent: '#57606a',
+  },
+}
+
 // Builds a satori-compatible element tree without needing React/JSX at build time.
 function el(type, props, children) {
   return { type, props: { ...props, children } }
@@ -117,6 +132,8 @@ export default async function handler(request) {
   const height = Number(searchParams.get('h')) || 400
   const legendCountParam = searchParams.get('legendCount')
   const legendCount = legendCountParam === null ? DEFAULT_LEGEND_COUNT : Number(legendCountParam)
+  const themeName = searchParams.get('theme') === 'light' ? 'light' : 'dark'
+  const theme = THEMES[themeName]
   // Scale text/bar/spacing relative to how big the requested canvas is, so a
   // "large" widget actually looks bigger and more detailed, not just zoomed-out.
   const scale = Math.min(width, height) / BASE_SIZE
@@ -178,12 +195,12 @@ export default async function handler(request) {
         }),
         el(
           'div',
-          { style: { color: '#e6edf3', display: 'flex', flex: 1 } },
+          { style: { color: theme.legendName, display: 'flex', flex: 1 } },
           s.name
         ),
         el(
           'div',
-          { style: { color: '#8b949e', display: 'flex' } },
+          { style: { color: theme.legendPercent, display: 'flex' } },
           `${s.percent.toFixed(1)}%`
         ),
       ]
@@ -196,7 +213,7 @@ export default async function handler(request) {
       {
         style: {
           display: 'flex',
-          color: '#8b949e',
+          color: theme.heading,
           fontSize: Math.round(18 * scale),
           marginBottom: Math.round(16 * scale),
         },
@@ -233,7 +250,7 @@ export default async function handler(request) {
         flexDirection: 'column',
         justifyContent: 'center',
         padding: `${Math.round(28 * scale)}px`,
-        backgroundColor: '#0d1117',
+        backgroundColor: theme.background,
         fontFamily: 'Inter',
       },
     },

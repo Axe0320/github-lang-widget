@@ -5,64 +5,149 @@
 <title>github-lang-widget</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
+  :root {
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
   body {
     margin: 0;
-    min-height: 100vh;
-    padding: 40px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 32px;
+    padding: 64px 24px 48px;
     background: #0d1117;
-    color: #8b949e;
+    color: #c9d1d9;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  h1 {
+    font-size: 28px;
+    margin: 0 0 8px;
+  }
+  header p {
+    margin: 0;
+    color: #8b949e;
+    font-size: 15px;
+  }
+  section {
+    margin-bottom: 48px;
+  }
+  h2 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #8b949e;
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #21262d;
+  }
   .grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 24px;
-    max-width: 1100px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
   }
   .card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
   }
   .card img {
-    max-width: 320px;
     width: 100%;
-    border-radius: 12px;
+    border-radius: 8px;
+    display: block;
   }
   .card span {
     font-size: 13px;
-    letter-spacing: 0.02em;
+    color: #8b949e;
+  }
+  footer {
+    text-align: center;
+    margin-top: 56px;
+    font-size: 13px;
+    color: #8b949e;
   }
   a {
     color: #58a6ff;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  code {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.9em;
   }
 </style>
 </head>
 <body>
-  <div class="grid">
-    <div class="card">
-      <img src="/api/chart?w=600&h=600&legendCount=0" alt="small widget preview" />
-      <span>small</span>
-    </div>
-    <div class="card">
-      <img src="/api/chart?w=1280&h=600&legendCount=3" alt="medium widget preview" />
-      <span>medium</span>
-    </div>
-    <div class="card">
-      <img src="/api/chart?w=1280&h=1280&legendCount=8" alt="large widget preview" />
-      <span>large</span>
-    </div>
-    <div class="card">
-      <img src="/api/chart?w=2048&h=1280&legendCount=10" alt="extraLarge widget preview" />
-      <span>extraLarge (iPad)</span>
-    </div>
-  </div>
-  <p><a href="https://github.com/Axe0320/github-lang-widget">github-lang-widget</a> — /api/chart で画像を生成しています</p>
+  <main>
+    <header>
+      <h1>github-lang-widget</h1>
+      <p>Axe0320 アカウントの全 public リポジトリを横断集計した GitHub 言語使用率を <code>/api/chart</code> がPNGとして生成しています</p>
+    </header>
+
+    <section>
+      <h2>Dark</h2>
+      <div class="grid">
+        <div class="card">
+          <img src="/api/chart?w=600&h=600&legendCount=0&theme=dark" alt="small widget preview (dark)" />
+          <span>small</span>
+        </div>
+        <div class="card">
+          <img src="/api/chart?w=1280&h=600&legendCount=3&theme=dark" alt="medium widget preview (dark)" />
+          <span>medium</span>
+        </div>
+        <div class="card">
+          <img src="/api/chart?w=1280&h=1280&legendCount=8&theme=dark" alt="large widget preview (dark)" />
+          <span>large</span>
+        </div>
+        <div class="card">
+          <img src="/api/chart?w=2048&h=1280&legendCount=10&theme=dark" alt="extraLarge widget preview (dark)" />
+          <span>extraLarge (iPad)</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Light</h2>
+      <div class="grid">
+        <div class="card">
+          <img src="/api/chart?w=600&h=600&legendCount=0&theme=light" alt="small widget preview (light)" />
+          <span>small</span>
+        </div>
+        <div class="card">
+          <img src="/api/chart?w=1280&h=600&legendCount=3&theme=light" alt="medium widget preview (light)" />
+          <span>medium</span>
+        </div>
+        <div class="card">
+          <img src="/api/chart?w=1280&h=1280&legendCount=8&theme=light" alt="large widget preview (light)" />
+          <span>large</span>
+        </div>
+        <div class="card">
+          <img src="/api/chart?w=2048&h=1280&legendCount=10&theme=light" alt="extraLarge widget preview (light)" />
+          <span>extraLarge (iPad)</span>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <a href="https://github.com/Axe0320/github-lang-widget">github.com/Axe0320/github-lang-widget</a>
+    </footer>
+  </main>
 </body>
 </html>

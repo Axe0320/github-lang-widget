@@ -57,6 +57,7 @@ vercel env add GITHUB_TOKEN
 - `owner` — 対象アカウントを上書き (デフォルト: `Axe0320`)
 - `w`, `h` — 出力画像サイズ (デフォルト: 600x400)
 - `legendCount` — バーの下に言語名を何件テキスト表示するか (デフォルト: 6、`0`でバーのみ)
+- `theme` — `dark` (デフォルト) または `light`。背景・文字色を切り替える
 
 ## Scriptable 側のセットアップ (iPhone) — 最初の1回だけ
 
@@ -67,6 +68,7 @@ vercel env add GITHUB_TOKEN
    Vercel にデプロイしておく（この内容が実行時に自動フェッチされる）。
 5. ホーム画面 or ロック画面を長押し → ウィジェット追加 → Scriptable を選択（好きなサイズで）。
 6. 追加したウィジェットを長押し → 「ウィジェットを編集」→ Script に `loader.js` を貼ったスクリプトを指定。
+   同じ画面の **Parameter** 欄に `light` と入力すると白背景テーマになる（未入力/それ以外は `dark`）。
 
 **これ以降、`widget-body.js` を直して `vercel --prod` するだけで iPhone 側は自動的に最新ロジックで動きます。
 Scriptable アプリを再度開いて貼り直す必要はありません。**

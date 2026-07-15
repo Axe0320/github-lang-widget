@@ -23,6 +23,13 @@ const ACCESSORY_FAMILIES = new Set([
   "accessoryInline",
 ])
 
+// Long-press the widget → Edit Widget → Parameter, and type "light" (or
+// "white") to switch it. Anything else (or left blank) stays "dark".
+function resolveTheme() {
+  const param = (args.widgetParameter || "").trim().toLowerCase()
+  return param === "light" || param === "white" ? "light" : "dark"
+}
+
 // Mirrors my-intro/index.js's loadGitHubRepos(): sum languages_url across every
 // public repo for the account, rather than just one repo.
 async function fetchTopLanguage() {
@@ -68,10 +75,11 @@ async function createAccessoryWidget(family) {
 
 async function createImageWidget(family) {
   const { w, h, legendCount } = IMAGE_SIZE_MAP[family] || IMAGE_SIZE_MAP.medium
+  const theme = resolveTheme()
   // Request at 2x for Retina sharpness.
   const url = `${API_BASE}?owner=${encodeURIComponent(
     OWNER
-  )}&w=${w * 2}&h=${h * 2}&legendCount=${legendCount}`
+  )}&w=${w * 2}&h=${h * 2}&legendCount=${legendCount}&theme=${theme}`
   const image = await new Request(url).loadImage()
 
   const widget = new ListWidget()
