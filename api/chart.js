@@ -319,7 +319,7 @@ export default async function handler(request) {
         'div',
         {
           style: fillHeight
-            ? { display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'space-evenly' }
+            ? { display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'space-between' }
             : { display: 'flex', flexDirection: 'column' },
         },
         legendRows
