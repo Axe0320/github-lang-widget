@@ -86,10 +86,16 @@ async function createImageWidget(family) {
   const { w, h, legendCount, rowBars, boost, rowBarHeight } =
     IMAGE_SIZE_MAP[family] || IMAGE_SIZE_MAP.medium
   const theme = resolveTheme()
-  // Request at 2x for Retina sharpness.
-  const url = `${API_BASE}?owner=${encodeURIComponent(OWNER)}&w=${w * 2}&h=${
-    h * 2
-  }&legendCount=${legendCount}&theme=${theme}&rowBars=${
+  // A flat "2x" undersells 3x devices (iPhone Pro/Pro Max, older Plus models),
+  // where the image comes back lower-resolution than the screen can actually
+  // show. Device.screenScale() gives the real per-device pixel density (2 or
+  // 3) instead of guessing.
+  const pixelScale = Device.screenScale()
+  const reqW = Math.round(w * pixelScale)
+  const reqH = Math.round(h * pixelScale)
+  const url = `${API_BASE}?owner=${encodeURIComponent(
+    OWNER
+  )}&w=${reqW}&h=${reqH}&legendCount=${legendCount}&theme=${theme}&rowBars=${
     rowBars ? 1 : 0
   }&boost=${boost}&rowBarHeight=${rowBarHeight}`
   const image = await new Request(url).loadImage()
