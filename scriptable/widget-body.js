@@ -99,11 +99,16 @@ async function createWidget() {
   return createImageWidget(family)
 }
 
-const widget = await createWidget()
+// loader.js runs this file via eval(), and indirect eval doesn't allow
+// top-level await (only Scriptable's own top-level script files do) — so
+// everything async has to happen inside a function body, not at this scope.
+;(async () => {
+  const widget = await createWidget()
 
-if (config.runsInWidget) {
-  Script.setWidget(widget)
-} else {
-  await widget.presentMedium()
-}
-Script.complete()
+  if (config.runsInWidget) {
+    Script.setWidget(widget)
+  } else {
+    await widget.presentMedium()
+  }
+  Script.complete()
+})()
