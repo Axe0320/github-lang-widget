@@ -1,9 +1,8 @@
 # github-lang-widget
 
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white)
-![iOS](https://img.shields.io/badge/iOS-000000?style=flat&logo=apple&logoColor=white)
+![Scriptable](https://img.shields.io/badge/Scriptable-1E90FF?style=flat&logoColor=white)
 
 `Axe0320` アカウントの **全 public リポジトリを横断集計した** GitHub 言語使用率を PNG 画像として
 生成する Vercel Function 群と、それを表示する iOS Scriptable ウィジェット。
