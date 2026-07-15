@@ -166,7 +166,12 @@ export default async function handler(request) {
       errorMessage = 'No language data'
     }
   } catch (e) {
-    errorMessage = e.message || 'Failed to load account languages'
+    // TEMP diagnostic: confirms whether the deployed function actually sees
+    // GITHUB_TOKEN at all (not its value), to rule out an env var / scope
+    // mismatch as the cause of repeated 403s. Remove once resolved.
+    errorMessage = `${e.message || 'Failed to load account languages'} (token:${
+      process.env.GITHUB_TOKEN ? 'set len=' + process.env.GITHUB_TOKEN.length : 'MISSING'
+    })`
   }
 
   if (errorMessage) {
