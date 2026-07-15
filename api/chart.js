@@ -214,9 +214,11 @@ export default async function handler(request) {
             color: theme.legendName,
             display: 'flex',
             // Fixed width (instead of flex: 1) so there's room left for the
-            // row's own bar when rowBars is on. Tied to `scale`, not `boost` —
-            // it has to stay within the canvas's actual width.
-            width: Math.round((rowBars ? 140 : 230) * scale),
+            // row's own bar when rowBars is on. Tied to `boosted` (not just
+            // `scale`) so the box grows in step with the font size it holds —
+            // otherwise a bigger `boost` clips names like "TypeScript" against
+            // the row's own bar.
+            width: Math.round((rowBars ? 140 : 230) * boosted),
             overflow: 'hidden',
             whiteSpace: 'nowrap',
           },
@@ -236,7 +238,7 @@ export default async function handler(request) {
               borderRadius: Math.round(4 * boosted),
               backgroundColor: theme.rowTrack,
               overflow: 'hidden',
-              marginRight: Math.round(12 * scale),
+              marginRight: Math.round(12 * boosted),
               display: 'flex',
             },
           },
@@ -261,7 +263,7 @@ export default async function handler(request) {
           style: {
             color: theme.legendPercent,
             display: 'flex',
-            width: Math.round(64 * scale),
+            width: Math.round(64 * boosted),
             justifyContent: 'flex-end',
           },
         },
