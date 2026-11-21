@@ -252,3 +252,20 @@ test('uses GitHub Linguist colors and shows two decimal places in the large iPho
     assert.deepEqual(labels, expected, family)
   }
 })
+
+test('keeps separators between language segments and uses the Linguist group color when available', () => {
+  const stats = buildLanguageStats({ 'Lean 4': 93, 'Maven POM': 6, 'SSH Config': 1 })
+  assert.deepEqual(stats.map(({ color }) => color), ['#3d6ac9', '#0060ac', '#d1dbe0'])
+
+  const options = {
+    owner, width: 600, height: 600, legendCount: 0, theme: THEMES.dark,
+    rowBars: false, boost: 1, rowBarHeight: 1,
+  }
+  const bar = (entries) => buildChartTree({ ...options, stats: entries }).props.children[1]
+  const segments = bar(stats)
+  assert.equal(segments.props.style.columnGap, 2)
+  assert.equal(segments.props.children.length, 3)
+  assert.equal(bar(stats.slice(0, 1)).props.style.columnGap, 0)
+  assert.equal(bar(Array.from({ length: 100 }, (_, i) => ({ name: String(i), percent: 1 })))
+    .props.style.columnGap, 0)
+})
