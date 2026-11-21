@@ -4,31 +4,14 @@
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white)
 ![Scriptable](https://img.shields.io/badge/Scriptable-1E90FF?style=flat&logoColor=white)
 
-`Axe0320` アカウントの **全 public リポジトリを横断集計した** GitHub 言語使用率を PNG 画像として
-生成する Vercel Function 群と、それを表示する iOS Scriptable ウィジェット。
-
-[my-intro](https://github.com/Axe0320/my-intro) の `index.js` (`loadGitHubRepos()`) と同じロジック
-(`/users/:owner/repos` で全リポジトリを取得 → 各リポジトリの `languages_url` を並列取得して合計) を
-サーバーサイドで再現しています。単一リポジトリの言語比率ではありません。
+GitHub リポジトリの言語別バイト数を集計し、iOS Scriptable ウィジェットに表示します。公開プレビューは Public リポジトリの集計です。本人用ウィジェットでは、許可した Private リポジトリを合算できます。
 
 ## 構成
 
-- `api/data.js` — Vercel Edge Function。GitHub API (`/users/:owner/repos` → 各リポジトリの
-  `languages_url`) を叩いて全リポジトリ分のバイト数を合計した JSON を返す。**GitHubへの実際の
-  問い合わせはここでしか行わない**。レスポンス自体が30分キャッシュされるので、`api/chart.js`が
-  どんなサイズ・テーマで何回呼ばれても、キャッシュが効いている間はGitHubへは1回しか飛ばない。
-- `api/chart.js` — Vercel Edge Function。`api/data.js` から言語データを取得し（GitHubには直接
-  アクセスしない）、言語別の使用率バー + 凡例を描画した PNG を返す。
-- `lib/githubData.js` — GitHubからのデータ取得ロジック（`api/data.js`が使用）。
-- `lib/chartTree.js` — PNGの描画ツリーを組み立てるロジック（`api/chart.js`が使用）。サイズごとに
-  ファイルを分けるのではなく、「データ取得」と「描画」で分割している（サイズの違いはただの
-  パラメータ違いであり、ロジックの複製にする意味が無いため）。
-- `api/widget-script.js` — `scriptable/widget-body.js` の中身をそのままテキストとして返す
-  Vercel Function。Scriptable 側から毎回フェッチされる「本体コード配信用」エンドポイント。
-- `scriptable/loader.js` — **iPhone に一度だけ貼る**小さなブートストラップ。
-  `api/widget-script.js` から最新コードを取得して `eval` するだけ。
-- `scriptable/widget-body.js` — ウィジェットの実際のロジック（サイズ判定・画像取得・
-  ロック画面用フォールバックなど）。ここを直せば iPhone 側は何もしなくても更新される。
+- `/api/data` は Public の言語別バイト数、`/api/chart` は Public の PNG を返します。公開結果は30分間キャッシュできます。
+- `/api/private-widget` はウィジェット専用キーで保護します。既定の `format=png` は合算の PNG、`format=top` は最上位言語と割合を返します。Private を含む応答には `private, no-store` を設定します。
+- `lib/githubData.js` はリポジトリ一覧の全ページを巡回し、言語別バイト数を取得します。PNG は同梱の Inter フォントで描画します。ライセンスは [OFL.txt](lib/fonts/OFL.txt) を参照してください。
+- Public モードでは、既存の `loader.js` で配信コードを更新する方式と、レビュー済みの `widget-body.js` を端末に貼る方式を選べます。Private モードは端末に貼る方式を使います。
 
 ## デプロイ手順 (Vercel)
 
@@ -48,16 +31,15 @@ https://<your-project>.vercel.app/api/chart
 https://<your-project>.vercel.app/api/widget-script   ← JSのソースコードがそのまま表示されればOK
 ```
 
-### 環境変数 (任意だが推奨)
+### Vercel の環境変数
 
-このAPIはリクエスト1回につき「リポジトリ一覧取得 + リポジトリ数ぶんの言語取得」を行うため、
-未認証 (60回/時) だとリポジトリ数が多い場合にすぐ枯渇し得ます。
-`Cache-Control: s-maxage=1800` で画像自体は30分キャッシュされますが、余裕を持たせるために
-Personal Access Token の設定を推奨します。
+| 変数 | 用途 |
+|---|---|
+| `GITHUB_TOKEN` | 任意。公開 API の GitHub レート制限に余裕を持たせるための Public アクセス用トークン。 |
+| `GITHUB_PRIVATE_TOKEN` | Private モード用。対象アカウントで有効期限付きの fine-grained PAT を作成し、対象の Private リポジトリを選びます。Repository permissions は `Metadata: Read-only` のみです。 |
+| `WIDGET_ACCESS_KEY` | Private モード用。GitHub PAT とは別に、パスワードマネージャーなどで生成したランダムなキーを使います。端末側にも同じキーを設定します。 |
 
-```bash
-vercel env add GITHUB_TOKEN
-```
+Private 用の2つの値は Vercel の Secret として保存します。環境変数設定後は再デプロイが必要です。Preview で Private モードを試す場合は、テスト用のリポジトリに限定した PAT と専用キーを対象ブランチだけに設定してください。対象とする個人アカウントは `lib/githubData.js` の `DEFAULT_OWNER` で固定されています。Private リポジトリを追加したときは PAT の対象選択も更新してください。
 
 ### `api/chart.js` のクエリパラメータ
 
@@ -71,22 +53,20 @@ vercel env add GITHUB_TOKEN
   `legendCount`が多くて縦に収まりきらない場合は、指定値より小さい値へ自動的に縮小される
 - `rowBarHeight` — 各言語行のミニバーの太さだけをさらに拡大する倍率 (デフォルト: `1`)
 
-## Scriptable 側のセットアップ (iPhone) — 最初の1回だけ
+## Scriptable 側のセットアップ
 
-1. App Store から **Scriptable** をインストール。
-2. Scriptable アプリで新規スクリプトを作成し、`scriptable/loader.js` の中身（数行だけ）を貼り付け。
-3. `SCRIPT_URL` を、上記でデプロイした Vercel の URL (`https://xxx.vercel.app/api/widget-script`) に書き換える。
-4. `scriptable/widget-body.js` 冒頭の `API_BASE` も同様に自分の Vercel URL (`.../api/chart`) に書き換えてから
-   Vercel にデプロイしておく（この内容が実行時に自動フェッチされる）。
-5. ホーム画面 or ロック画面を長押し → ウィジェット追加 → Scriptable を選択（好きなサイズで）。
-6. 追加したウィジェットを長押し → 「ウィジェットを編集」→ Script に `loader.js` を貼ったスクリプトを指定。
-   同じ画面の **Parameter** 欄に `light`/`white`/`白`/`ホワイト`/`ライト` のいずれかを入力すると
-   白背景テーマになる（未入力/それ以外は `dark`）。
+### Public モード
 
-**これ以降、`widget-body.js` を直して `vercel --prod` するだけで iPhone 側は自動的に最新ロジックで動きます。
-Scriptable アプリを再度開いて貼り直す必要はありません。**
-（`api/chart.js` 側は `Cache-Control: s-maxage=1800` なので画像自体は30分程度キャッシュされます。
-`api/widget-script.js` は `no-store` なので、コードは毎回最新のものが取得されます。）
+Scriptable に `scriptable/loader.js` を貼り、`SCRIPT_URL` をデプロイ先の `/api/widget-script` に設定します。デプロイした `scriptable/widget-body.js` の `API_ORIGIN` と `OWNER` も必要に応じて更新します。端末でコードを管理する場合は `widget-body.js` を直接貼り、`INCLUDE_PRIVATE = false` のまま使えます。
+
+### Public と Private を合算する
+
+1. 既存の Scriptable スクリプトを、レビュー済みの `scriptable/widget-body.js` 全体で置き換えます。
+2. `API_ORIGIN` をデプロイ先の HTTPS オリジンに設定し、`INCLUDE_PRIVATE = true` にします。
+3. Scriptable 内でスクリプトを実行し、**Set access key** から Vercel の `WIDGET_ACCESS_KEY` と同じ値を入力します。キーは端末の Keychain に保存されます。
+4. ホーム画面とロック画面のウィジェットで、このスクリプトを指定します。ロック画面は既定で Public の集計を表示します。合算後の最上位言語と割合をロック画面に出す場合は `SHOW_PRIVATE_ON_LOCK_SCREEN = true` にします。
+
+白背景にするには、ウィジェットの Parameter に `light`／`white`／`白`／`ホワイト`／`ライト` のいずれかを入力します。既定はダークです。
 
 ## 対応ウィジェットサイズ
 
@@ -117,3 +97,7 @@ gh repo create <repo-name> --private --source=. --push
 
 Vercel 側でその GitHub リポジトリと連携すれば、`git push` するだけで自動デプロイされるようになります
 （loader.js だけ手元の Scriptable に残っていれば、以後は push だけでウィジェットの中身を更新できます）。
+
+## 検証
+
+`npm ci` の後に `npm test` を実行します。GitHub の応答は架空データに置き換え、テスト用のキーで認証・ページネーション・PNG 生成・ロック画面のリクエストを検証します。

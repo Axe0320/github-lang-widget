@@ -2,6 +2,17 @@
   "functions": {
     "api/widget-script.js": {
       "includeFiles": "scriptable/**"
+    },
+    "api/data.js": {
+      "maxDuration": 60
+    },
+    "api/chart.js": {
+      "maxDuration": 60,
+      "includeFiles": "lib/fonts/Inter-Regular.ttf"
+    },
+    "api/private-widget.js": {
+      "maxDuration": 60,
+      "includeFiles": "lib/fonts/Inter-Regular.ttf"
     }
   }
 }
