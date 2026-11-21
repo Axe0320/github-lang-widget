@@ -8,11 +8,11 @@
     },
     "api/chart.js": {
       "maxDuration": 60,
-      "includeFiles": "lib/fonts/Inter-Regular.ttf"
+      "includeFiles": "{lib/fonts/Inter-Regular.ttf,node_modules/@resvg/resvg-wasm/index_bg.wasm}"
     },
     "api/private-widget.js": {
       "maxDuration": 60,
-      "includeFiles": "lib/fonts/Inter-Regular.ttf"
+      "includeFiles": "{lib/fonts/Inter-Regular.ttf,node_modules/@resvg/resvg-wasm/index_bg.wasm}"
     }
   }
 }
