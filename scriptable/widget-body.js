@@ -1,9 +1,59 @@
-// This file is fetched over the network and eval()'d by loader.js at widget
-// refresh time — it is NOT pasted into Scriptable directly. Edit here,
-// `vercel --prod`, and the widget picks it up on its next refresh.
-
-const API_BASE = "https://github-lang-widget.vercel.app/api/chart"
+// For Private mode, paste this entire file into a Scriptable script directly.
+const API_ORIGIN = "https://github-lang-widget.vercel.app"
 const OWNER = "Axe0320"
+const INCLUDE_PRIVATE = false
+const SHOW_PRIVATE_ON_LOCK_SCREEN = false
+const KEYCHAIN_KEY = `github-lang-widget:${API_ORIGIN}`
+
+async function setAccessKey() {
+  const prompt = new Alert()
+  prompt.title = "Widget access key"
+  prompt.addSecureTextField("Access key")
+  prompt.addAction("Save")
+  prompt.addCancelAction("Cancel")
+  if (await prompt.presentAlert() === 0) {
+    const key = prompt.textFieldValue(0).trim()
+    if (key) Keychain.set(KEYCHAIN_KEY, key)
+  }
+}
+
+function widgetRequest(path, usePrivate = false) {
+  if (!/^https:\/\/[a-z0-9.-]+$/i.test(API_ORIGIN)) throw new Error("Invalid API origin")
+  const request = new Request(API_ORIGIN + path)
+  if (usePrivate) {
+    if (!Keychain.contains(KEYCHAIN_KEY)) {
+      throw new PreviewError("この URL のキーが未登録です。Set access key を実行してください。")
+    }
+    const key = Keychain.get(KEYCHAIN_KEY)
+    request.headers = { Authorization: `Bearer ${key}` }
+    request.onRedirect = () => null
+  }
+  return request
+}
+
+class PreviewError extends Error {}
+
+function imageRequestError(request) {
+  const status = request.response?.statusCode
+  const headers = Object.entries(request.response?.headers || {})
+  const contentType = headers.find(([name]) => name.toLowerCase() === "content-type")?.[1] || ""
+  if (((status === 401 || status === 403) && /text\/html/i.test(contentType)) ||
+      (status >= 300 && status < 400)) {
+    return new PreviewError(`Vercel のログイン保護で止まりました（HTTP ${status}）。`)
+  }
+  if (status === 401) {
+    return new PreviewError("ウィジェット専用キーが拒否されました（HTTP 401）。")
+  }
+  if (status === 503) {
+    return new PreviewError("このデプロイの Private 集計用設定が不足しています（HTTP 503）。")
+  }
+  if (status === 502) {
+    return new PreviewError("Vercel は応答しましたが、GitHub の集計に失敗しました（HTTP 502）。")
+  }
+  return new PreviewError(status
+    ? `PNG を取得できませんでした（HTTP ${status}）。`
+    : "サーバーから応答を取得できませんでした。URL と通信状態を確認してください。")
+}
 
 // Home Screen / iPad widget sizes: rendered via the PNG chart from api/chart.js.
 // The bar itself always shows the same overall breakdown; legendCount controls
@@ -39,24 +89,17 @@ function resolveTheme() {
   return LIGHT_WORDS.has(param) ? "light" : "dark"
 }
 
-// Mirrors my-intro/index.js's loadGitHubRepos(): sum languages_url across every
-// public repo for the account, rather than just one repo.
 async function fetchTopLanguage() {
-  const repos = await new Request(
-    `https://api.github.com/users/${OWNER}/repos?sort=updated&per_page=100`
-  ).loadJSON()
+  if (INCLUDE_PRIVATE && SHOW_PRIVATE_ON_LOCK_SCREEN) {
+    const request = widgetRequest("/api/private-widget?format=top", true)
+    const data = await request.loadJSON()
+    if (request.response.statusCode !== 200) throw new Error("Widget unavailable")
+    return data.top
+  }
 
-  const langTotalsList = await Promise.all(
-    repos.map((repo) => new Request(repo.languages_url).loadJSON())
-  )
-
-  const totals = {}
-  langTotalsList.forEach((langs) => {
-    Object.entries(langs).forEach(([lang, bytes]) => {
-      totals[lang] = (totals[lang] || 0) + bytes
-    })
-  })
-
+  const request = widgetRequest(`/api/data?owner=${encodeURIComponent(OWNER)}`)
+  const { totals } = await request.loadJSON()
+  if (request.response.statusCode !== 200) throw new Error("Widget unavailable")
   const entries = Object.entries(totals).sort((a, b) => b[1] - a[1])
   if (entries.length === 0) return null
   const total = entries.reduce((sum, [, bytes]) => sum + bytes, 0)
@@ -93,12 +136,20 @@ async function createImageWidget(family) {
   const pixelScale = Device.screenScale()
   const reqW = Math.round(w * pixelScale)
   const reqH = Math.round(h * pixelScale)
-  const url = `${API_BASE}?owner=${encodeURIComponent(
-    OWNER
-  )}&w=${reqW}&h=${reqH}&legendCount=${legendCount}&theme=${theme}&rowBars=${
+  const endpoint = INCLUDE_PRIVATE
+    ? "/api/private-widget?format=png"
+    : `/api/chart?owner=${encodeURIComponent(OWNER)}`
+  const url = `${endpoint}&w=${reqW}&h=${reqH}&legendCount=${legendCount}&theme=${theme}&rowBars=${
     rowBars ? 1 : 0
   }&boost=${boost}&rowBarHeight=${rowBarHeight}`
-  const image = await new Request(url).loadImage()
+  const request = widgetRequest(url, INCLUDE_PRIVATE)
+  let image
+  try {
+    image = await request.loadImage()
+  } catch {
+    throw imageRequestError(request)
+  }
+  if (request.response?.statusCode !== 200) throw imageRequestError(request)
 
   const widget = new ListWidget()
   widget.backgroundImage = image
@@ -113,16 +164,41 @@ async function createWidget() {
   return createImageWidget(family)
 }
 
-// loader.js runs this file via eval(), and indirect eval doesn't allow
-// top-level await (only Scriptable's own top-level script files do) — so
-// everything async has to happen inside a function body, not at this scope.
-;(async () => {
-  const widget = await createWidget()
-
-  if (config.runsInWidget) {
-    Script.setWidget(widget)
-  } else {
-    await widget.presentMedium()
+async function main() {
+  if (INCLUDE_PRIVATE && !config.runsInWidget) {
+    const menu = new Alert()
+    menu.title = "GitHub Lang Widget"
+    menu.addAction("Preview")
+    menu.addAction("Set access key")
+    menu.addCancelAction("Cancel")
+    const action = await menu.presentAlert()
+    if (action === 1) return setAccessKey()
+    if (action !== 0) return
   }
-  Script.complete()
+
+  try {
+    const widget = await createWidget()
+    if (config.runsInWidget) Script.setWidget(widget)
+    else await widget.presentMedium()
+  } catch (error) {
+    if (config.runsInWidget) {
+      const fallback = new ListWidget()
+      fallback.addText("N/A")
+      Script.setWidget(fallback)
+      return
+    }
+    const alert = new Alert()
+    alert.title = "プレビューを取得できません"
+    alert.message = error instanceof PreviewError ? error.message : "ウィジェットの設定を確認してください。"
+    alert.addAction("OK")
+    await alert.presentAlert()
+  }
+}
+
+;(async () => {
+  try {
+    await main()
+  } finally {
+    Script.complete()
+  }
 })()
