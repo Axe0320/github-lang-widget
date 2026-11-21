@@ -159,7 +159,7 @@ test('Scriptable routes all families and only uses private data on lock screen a
         async loadJSON() { return { totals: { JavaScript: 1 }, top: { name: 'Python', percent: 67 } } }
         async loadImage() { return 'fixture-png' }
       },
-      Keychain: { get: () => accessKey },
+      Keychain: { contains: () => true, get: () => accessKey },
       ListWidget: class {
         labels = []
         addText(text) { this.labels.push(text); return {} }
@@ -197,5 +197,39 @@ test('Scriptable routes all families and only uses private data on lock screen a
     assert.equal(privateView.request.url.pathname, '/api/private-widget')
     assert.equal(privateView.request.url.searchParams.get('format'), 'top')
     assert.equal(privateView.widget.labels.at(-1), 'Python 67%')
+  }
+})
+
+test('manual Scriptable previews report the failure without displaying raw errors', async () => {
+  const script = (await readFile(new URL('../scriptable/widget-body.js', import.meta.url), 'utf8'))
+    .replace('INCLUDE_PRIVATE = false', 'INCLUDE_PRIVATE = true')
+  const cases = [
+    [false, undefined, undefined, /キーが未登録/],
+    [true, 401, 'text/html', /ログイン保護/],
+    [true, 401, 'application/json', /キーが拒否/],
+    [true, 503, 'application/json', /設定が不足/],
+    [true, 502, 'application/json', /GitHub の集計に失敗/],
+    [true, undefined, undefined, /応答を取得できません/],
+  ]
+  for (const [hasKey, statusCode, contentType, expected] of cases) {
+    const messages = []
+    await runInNewContext(script, {
+      Request: class {
+        response = statusCode && { statusCode, headers: { 'Content-Type': contentType } }
+        async loadImage() { throw new Error('raw error that must not be displayed') }
+      },
+      Keychain: { contains: () => hasKey, get: () => accessKey },
+      Alert: class {
+        addAction() {}
+        addCancelAction() {}
+        async presentAlert() { if (this.message) messages.push(this.message); return 0 }
+      },
+      args: {},
+      config: { runsInWidget: false },
+      Device: { screenScale: () => 3 },
+      Script: { complete() {} },
+    })
+    assert.equal(messages.length, 1)
+    assert.match(messages[0], expected)
   }
 })

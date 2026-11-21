@@ -21,11 +21,38 @@ function widgetRequest(path, usePrivate = false) {
   if (!/^https:\/\/[a-z0-9.-]+$/i.test(API_ORIGIN)) throw new Error("Invalid API origin")
   const request = new Request(API_ORIGIN + path)
   if (usePrivate) {
+    if (!Keychain.contains(KEYCHAIN_KEY)) {
+      throw new PreviewError("この URL のキーが未登録です。Set access key を実行してください。")
+    }
     const key = Keychain.get(KEYCHAIN_KEY)
     request.headers = { Authorization: `Bearer ${key}` }
     request.onRedirect = () => null
   }
   return request
+}
+
+class PreviewError extends Error {}
+
+function imageRequestError(request) {
+  const status = request.response?.statusCode
+  const headers = Object.entries(request.response?.headers || {})
+  const contentType = headers.find(([name]) => name.toLowerCase() === "content-type")?.[1] || ""
+  if (((status === 401 || status === 403) && /text\/html/i.test(contentType)) ||
+      (status >= 300 && status < 400)) {
+    return new PreviewError(`Vercel のログイン保護で止まりました（HTTP ${status}）。`)
+  }
+  if (status === 401) {
+    return new PreviewError("ウィジェット専用キーが拒否されました（HTTP 401）。")
+  }
+  if (status === 503) {
+    return new PreviewError("このデプロイの Private 集計用設定が不足しています（HTTP 503）。")
+  }
+  if (status === 502) {
+    return new PreviewError("Vercel は応答しましたが、GitHub の集計に失敗しました（HTTP 502）。")
+  }
+  return new PreviewError(status
+    ? `PNG を取得できませんでした（HTTP ${status}）。`
+    : "サーバーから応答を取得できませんでした。URL と通信状態を確認してください。")
 }
 
 // Home Screen / iPad widget sizes: rendered via the PNG chart from api/chart.js.
@@ -116,8 +143,13 @@ async function createImageWidget(family) {
     rowBars ? 1 : 0
   }&boost=${boost}&rowBarHeight=${rowBarHeight}`
   const request = widgetRequest(url, INCLUDE_PRIVATE)
-  const image = await request.loadImage()
-  if (request.response.statusCode !== 200) throw new Error("Widget unavailable")
+  let image
+  try {
+    image = await request.loadImage()
+  } catch {
+    throw imageRequestError(request)
+  }
+  if (request.response?.statusCode !== 200) throw imageRequestError(request)
 
   const widget = new ListWidget()
   widget.backgroundImage = image
@@ -144,16 +176,22 @@ async function main() {
     if (action !== 0) return
   }
 
-  const widget = await createWidget().catch(() => {
-    const fallback = new ListWidget()
-    fallback.addText("N/A")
-    return fallback
-  })
-
-  if (config.runsInWidget) {
-    Script.setWidget(widget)
-  } else {
-    await widget.presentMedium()
+  try {
+    const widget = await createWidget()
+    if (config.runsInWidget) Script.setWidget(widget)
+    else await widget.presentMedium()
+  } catch (error) {
+    if (config.runsInWidget) {
+      const fallback = new ListWidget()
+      fallback.addText("N/A")
+      Script.setWidget(fallback)
+      return
+    }
+    const alert = new Alert()
+    alert.title = "プレビューを取得できません"
+    alert.message = error instanceof PreviewError ? error.message : "ウィジェットの設定を確認してください。"
+    alert.addAction("OK")
+    await alert.presentAlert()
   }
 }
 
