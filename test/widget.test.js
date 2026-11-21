@@ -6,6 +6,7 @@ import chart from '../api/chart.js'
 import data from '../api/data.js'
 import privateWidget from '../api/private-widget.js'
 import { fetchAccountLanguageTotals } from '../lib/githubData.js'
+import { buildChartTree, buildLanguageStats, FALLBACK_COLOR, THEMES } from '../lib/chartTree.js'
 
 const accessKey = 'fixture-widget-key'
 const githubPrivateToken = 'fixture-private-token'
@@ -231,5 +232,23 @@ test('manual Scriptable previews report the failure without displaying raw error
     })
     assert.equal(messages.length, 1)
     assert.match(messages[0], expected)
+  }
+})
+
+test('uses GitHub Linguist colors and shows two decimal places in the large iPhone chart', () => {
+  const stats = buildLanguageStats({ TypeScript: 9993, Dockerfile: 4, PowerShell: 3 })
+  assert.equal(stats.find(({ name }) => name === 'Dockerfile').color, '#384d54')
+  assert.equal(stats.find(({ name }) => name === 'PowerShell').color, '#012456')
+  assert.equal(buildLanguageStats({ Unknown: 1 })[0].color, FALLBACK_COLOR)
+
+  for (const [family, width, height, legendCount, rowBars, boost, rowBarHeight] of sizes) {
+    const tree = buildChartTree({
+      owner, stats, width: width * 3, height: height * 3, legendCount,
+      rowBars: Boolean(rowBars), boost, rowBarHeight, theme: THEMES.dark,
+    })
+    const legend = tree.props.children.at(-1)
+    const labels = legend.props.children.map((row) => row.props.children.at(-1).props.children)
+    const expected = family === 'large' ? ['99.93%', '0.04%', '0.03%'] : ['99.9%', '0.0%', '0.0%']
+    assert.deepEqual(labels, expected, family)
   }
 })
